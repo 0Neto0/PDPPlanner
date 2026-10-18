@@ -33,6 +33,18 @@ class SapOrder:
     description: str = ""
 
 
+@dataclass(frozen=True)
+class ProductionOperation:
+    """One operation row belonging to a production order (OT)."""
+
+    source_row: int
+    ot: str
+    description: str = ""
+    client: str = ""
+    machine: str = ""
+    budget_hours: object = None
+
+
 T = TypeVar("T")
 
 
