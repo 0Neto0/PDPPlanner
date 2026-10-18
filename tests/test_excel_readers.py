@@ -24,11 +24,15 @@ def _make_sap_workbook(path):
     sheet["H6"] = 2300001
     sheet["J6"] = "rECIBIDO"
     sheet["E7"] = 4500000002
-    sheet["G7"] = "MATERIAL SIN OT"
+    sheet["G7"] = "MATERIAL"
+    sheet["H7"] = 2300002
     sheet["J7"] = "ESTADO NUEVO"
     sheet["E8"] = 4500000002
     sheet["H8"] = 2300003
     sheet["J8"] = "EN TRAMITE"
+    sheet["E9"] = 4500000003
+    sheet["G9"] = "MATERIAL SIN OT"
+    sheet["J9"] = "ESTADO NUEVO"
     workbook.save(path)
 
 
@@ -38,7 +42,7 @@ def test_read_sap_orders_preserves_rows_and_reports_issues(tmp_path):
 
     result = read_sap_orders(path)
 
-    assert len(result.records) == 3
+    assert len(result.records) == 4
     assert result.records[0].ot == "2300001"
     assert result.records[0].order_id == "4500000001"
     assert result.records[0].expected_date == datetime(2026, 1, 10)
