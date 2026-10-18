@@ -27,8 +27,13 @@ Añadir una línea informativa `PEDIDOS` dentro de cada bloque de OT de la hoja 
 
 - Contar pedidos distintos asociados a cada OT, no unidades.
 - Excluir los pedidos anulados del denominador.
-- Pendientes: estados normalizados `EN TRÁMITE` y `PARCIALMENTE RECIBIDO`.
-- Recibidos: estado normalizado `RECIBIDO`.
+- Considerar pendientes los estados normalizados:
+  - `EN TRÁMITE`
+  - `PARCIALMENTE RECIBIDO`
+  - `LISTO PARA RECOGER`
+  - `PENDIENTE COMPROBAR CALIDAD`
+  - `RECIBIDO ERRÓNEO`
+- Considerar recibido el estado normalizado `RECIBIDO`.
 - Normalizar espacios, mayúsculas y tildes/variantes de escritura.
 - Los estados desconocidos deben informarse para revisión; no clasificarlos silenciosamente.
 
