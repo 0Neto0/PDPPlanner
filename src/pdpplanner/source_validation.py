@@ -13,7 +13,14 @@ from pdpplanner.excel_readers import (
     read_sap_orders,
     read_staff_calendar,
 )
-from pdpplanner.models import ReadResult, SapOrder, ProductionOperation, ProductionOrderInfo, StaffMember, ValidationIssue
+from pdpplanner.models import (
+    ProductionOperation,
+    ProductionOrderInfo,
+    ReadResult,
+    SapOrder,
+    StaffMember,
+    ValidationIssue,
+)
 
 
 @dataclass
