@@ -12,7 +12,10 @@ from pdpplanner.order_status import (
 class OrderStatusTests(unittest.TestCase):
     def test_state_normalization_and_classification(self):
         self.assertEqual(normalize_text("  recibido  "), "RECIBIDO")
-        self.assertEqual(normalize_text("pendiente comprobar calidad"), "PENDIENTE COMPROBAR CALIDAD")
+        self.assertEqual(
+            normalize_text("pendiente comprobar calidad"),
+            "PENDIENTE COMPROBAR CALIDAD",
+        )
         self.assertEqual(classify_state("EN TRAMITE"), "pending")
         self.assertEqual(classify_state("PARCIALMENTE RECIBIDO"), "pending")
         self.assertEqual(classify_state("LISTO PARA RECOGER"), "pending")
