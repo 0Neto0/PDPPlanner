@@ -45,6 +45,31 @@ class ProductionOperation:
     budget_hours: object = None
 
 
+@dataclass(frozen=True)
+class ProductionOrderInfo:
+    """Commercial and progress fields for one row in ``Listado Pedidos``."""
+
+    source_row: int
+    ot: str
+    priority: object = None
+    purchase_order: str = ""
+    product: str = ""
+    client: str = ""
+    status: str = ""
+    progress: tuple[object, ...] = ()
+
+
+@dataclass(frozen=True)
+class StaffMember:
+    """Staff identity and dates marked unavailable in the source calendar."""
+
+    source_row: int
+    name: str
+    section: str = ""
+    role: str = ""
+    unavailable_dates: tuple[DateValue, ...] = ()
+
+
 T = TypeVar("T")
 
 
