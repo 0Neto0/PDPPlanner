@@ -41,6 +41,10 @@ def _clean_identifier(value: Any) -> str | None:
     return str(value).strip()
 
 
+def _normalize_header(value: Any) -> str:
+    return " ".join(str(value or "").strip().upper().split())
+
+
 def read_sap_orders(
     path: str | Path,
     *,
@@ -74,22 +78,29 @@ def read_sap_orders(
             )
 
         worksheet = workbook[sheet_name]
+        header_values = next(
+            worksheet.iter_rows(
+                min_row=header_row,
+                max_row=header_row,
+                max_col=max(SAP_COLUMNS.values()),
+                values_only=True,
+            ),
+            (),
+        )
         for field, column in SAP_COLUMNS.items():
-            actual = worksheet.cell(header_row, column).value
+            actual = header_values[column - 1] if len(header_values) >= column else None
             expected = EXPECTED_HEADERS[field]
-            actual_text = " ".join(str(actual or "").strip().upper().split())
-            expected_text = " ".join(expected.upper().split())
-            # Some exported Excel files use Nº/N°/No variants.
+            actual_text = _normalize_header(actual)
+            expected_text = _normalize_header(expected)
+            # Some exports use N°/No. variants for the order number.
             if field == "order_id":
-                header_ok = actual_text.replace("N°", "Nº").replace("NO.", "Nº") == expected_text
-            else:
-                header_ok = actual_text == expected_text
-            if not header_ok:
+                actual_text = actual_text.replace("N°", "Nº").replace("NO.", "Nº")
+            if actual_text != expected_text:
                 issues.append(
                     ValidationIssue(
                         code="SAP_HEADER_MISMATCH",
                         message=(
-                            f"Encabezado inesperado en {worksheet.cell(header_row, column).coordinate}: "
+                            f"Encabezado inesperado en columna {column}, fila {header_row}: "
                             f"{actual!r}; se esperaba {expected!r}."
                         ),
                         source=source,
@@ -97,9 +108,16 @@ def read_sap_orders(
                     )
                 )
 
-        for row in range(header_row + 1, worksheet.max_row + 1):
+        for row_number, values in enumerate(
+            worksheet.iter_rows(
+                min_row=header_row + 1,
+                max_col=max(SAP_COLUMNS.values()),
+                values_only=True,
+            ),
+            start=header_row + 1,
+        ):
             raw_values = {
-                field: worksheet.cell(row, column).value
+                field: values[column - 1] if len(values) >= column else None
                 for field, column in SAP_COLUMNS.items()
             }
             if all(value is None or not str(value).strip() for value in raw_values.values()):
@@ -110,7 +128,7 @@ def read_sap_orders(
             ot = normalize_ot(raw_ot) if raw_ot else None
             state = str(raw_values["state"] or "").strip()
             record = SapOrder(
-                source_row=row,
+                source_row=row_number,
                 order_id=order_id,
                 ot=ot,
                 state=state,
@@ -126,7 +144,7 @@ def read_sap_orders(
                         code="SAP_MISSING_OT",
                         message="El registro SAP no tiene OT; no se asociará por inferencia.",
                         source=source,
-                        row=row,
+                        row=row_number,
                     )
                 )
             if not order_id:
@@ -135,17 +153,16 @@ def read_sap_orders(
                         code="SAP_MISSING_ORDER_ID",
                         message="El registro SAP no tiene número de pedido.",
                         source=source,
-                        row=row,
+                        row=row_number,
                     )
                 )
-            classification = classify_state(state)
-            if classification == "unknown":
+            if classify_state(state) == "unknown":
                 issues.append(
                     ValidationIssue(
                         code="SAP_UNKNOWN_STATE",
                         message=f"Estado SAP no reconocido: {state!r}.",
                         source=source,
-                        row=row,
+                        row=row_number,
                     )
                 )
 
