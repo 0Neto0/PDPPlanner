@@ -8,12 +8,15 @@ from typing import Any
 
 from openpyxl import load_workbook
 
-from pdpplanner.models import ReadResult, SapOrder, ValidationIssue
+from pdpplanner.models import ProductionOperation, ReadResult, SapOrder, ValidationIssue
 from pdpplanner.order_status import classify_state, normalize_ot
 
 SAP_SHEET = "2024"
 SAP_HEADER_ROW = 5
 SAP_FIRST_DATA_ROW = SAP_HEADER_ROW + 1
+PRODUCTION_SHEET = "PdP PRODUCCIÓN"
+PRODUCTION_HEADER_ROW = 19
+PRODUCTION_FIRST_DATA_ROW = 29
 
 # Column positions are part of the agreed input contract. Column C is
 # intentionally absent: it is the supplier-response date and must be ignored.
@@ -92,7 +95,6 @@ def read_sap_orders(
             expected = EXPECTED_HEADERS[field]
             actual_text = _normalize_header(actual)
             expected_text = _normalize_header(expected)
-            # Some exports use N°/No. variants for the order number.
             if field == "order_id":
                 actual_text = actual_text.replace("N°", "Nº").replace("NO.", "Nº")
             if actual_text != expected_text:
@@ -188,4 +190,94 @@ def read_sap_orders(
     finally:
         workbook.close()
 
+    return ReadResult(records=records, issues=issues)
+
+
+def read_production_operations(
+    path: str | Path,
+    *,
+    sheet_name: str = PRODUCTION_SHEET,
+    header_row: int = PRODUCTION_HEADER_ROW,
+    first_data_row: int = PRODUCTION_FIRST_DATA_ROW,
+) -> ReadResult[ProductionOperation]:
+    """Read operation rows from ``PdP PRODUCCIÓN`` without assuming 8 rows per OT.
+
+    The worksheet's operation/machine label is in column E. OT values are read
+    from column B; when Excel has merged the OT cell across operation rows,
+    the last explicit OT is carried only while consecutive operation rows exist.
+    Timeline cells and formulas are deliberately not interpreted by this reader.
+    """
+    source = str(path)
+    records: list[ProductionOperation] = []
+    issues: list[ValidationIssue] = []
+    workbook = load_workbook(path, read_only=True, data_only=True)
+    try:
+        if sheet_name not in workbook.sheetnames:
+            return ReadResult(
+                records=[],
+                issues=[ValidationIssue(
+                    code="PRODUCTION_SHEET_MISSING",
+                    message=f"No existe la hoja requerida {sheet_name!r}.",
+                    source=source,
+                    severity="error",
+                )],
+            )
+
+        worksheet = workbook[sheet_name]
+        headers = next(
+            worksheet.iter_rows(
+                min_row=header_row, max_row=header_row, min_col=2, max_col=6,
+                values_only=True,
+            ),
+            (),
+        )
+        expected = {0: "Nº OT", 1: "TIPO MÁQUINA", 4: "H. PRESUP."}
+        for index, expected_header in expected.items():
+            actual = headers[index] if len(headers) > index else None
+            if _normalize_header(actual).replace("N°", "Nº") != _normalize_header(expected_header):
+                issues.append(ValidationIssue(
+                    code="PRODUCTION_HEADER_MISMATCH",
+                    message=(f"Encabezado inesperado en columna {index + 2}, fila {header_row}: "
+                             f"{actual!r}; se esperaba {expected_header!r}."),
+                    source=source,
+                    row=header_row,
+                ))
+
+        active_ot: str | None = None
+        for row_number, values in enumerate(
+            worksheet.iter_rows(min_row=first_data_row, min_col=2, max_col=6, values_only=True),
+            start=first_data_row,
+        ):
+            # Values are B:F: OT, description/type, client, machine, budget hours.
+            raw_ot, description, client, machine, budget_hours = (
+                list(values) + [None] * 5
+            )[:5]
+            machine_text = str(machine or "").strip()
+            if raw_ot is not None and str(raw_ot).strip():
+                raw_ot_text = str(raw_ot).strip()
+                if raw_ot_text.upper() not in {"OT", "Nº OT", "N° OT"}:
+                    active_ot = normalize_ot(raw_ot_text)
+            if not machine_text:
+                # A blank row breaks a merged-cell carry-forward block.
+                if not any(value is not None and str(value).strip() for value in values):
+                    active_ot = None
+                continue
+            if not active_ot:
+                issues.append(ValidationIssue(
+                    code="PRODUCTION_OPERATION_WITHOUT_OT",
+                    message="Hay una operación con máquina pero sin OT identificable.",
+                    source=source,
+                    row=row_number,
+                ))
+                continue
+            records.append(ProductionOperation(
+                source_row=row_number,
+                ot=active_ot,
+                description=str(description or "").strip(),
+                client=str(client or "").strip(),
+                machine=machine_text,
+                budget_hours=budget_hours,
+            ))
+    finally:
+        workbook.close()
     return ReadResult(records=records, issues=issues)
