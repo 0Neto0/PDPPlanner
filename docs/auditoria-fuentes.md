@@ -21,13 +21,19 @@ El libro contiene 95 nombres definidos y 2 vínculos externos. El código que pr
 - El encabezado de las operaciones está en la fila 19; la OT está en la columna B.
 - La fila 20 es una fila oculta usada por fórmulas de la plantilla.
 - La escala temporal comienza en la zona de columnas J en adelante; el área de fechas se extiende hasta la columna RJ.
-- Hay 100 celdas combinadas y 4263 reglas de formato condicional en la hoja.
-- Se observan bloques de trabajo con una fila de cabecera/operación y siete filas de secciones productivas (ocho filas en total para muchos bloques completos). Sin embargo, la fuente también contiene OT con 1, 3, 7 y 16 filas. Por tanto, **no se debe asumir que cada OT ocupa exactamente ocho filas**: el lector debe identificar el bloque real y reportar excepciones.
+- Se observan bloques de trabajo de longitudes variables: aunque muchos bloques completos ocupan ocho filas, también existen OT con 1, 3, 7 y 16 filas. El lector no debe imponer una cantidad fija de filas.
+- El lector inicial `read_production_operations` lee las operaciones a partir de la fila 29, identifica la máquina/recurso en E y las horas presupuestadas en F, y devuelve incidencias cuando una operación no puede asociarse a una OT. Las fórmulas y celdas de la escala temporal no se interpretan ni modifican.
 - Hay columnas/filas ocultas y fórmulas que dependen de nombres definidos. La inserción de filas sin estrategia y pruebas específicas podría dañar referencias, fórmulas o formato.
 
-### Errores preexistentes detectados
+### Hoja `Listado Pedidos`
 
-La hoja `Listado Pedidos` contiene 1.011 celdas cuyo valor es `#REF!` (incluye un bloque de columnas AD:AJ y más referencias en filas posteriores). Estos errores ya están presentes en el libro fuente inspeccionado. Deben registrarse como incidencia de origen y no atribuirse a PDPPlanner.
+El lector inicial `read_production_order_list` lee OT (B), pedido de compras (F), producto (G), cliente (H), progreso por fases (I:L) y estado (N). Se abre con `data_only=True`: no recalcula fórmulas. Los valores calculados que falten en el fichero no se deben inventar ni sustituir por resultados estimados.
+
+La hoja contiene 1.011 celdas cuyo valor es `#REF!` en la fuente inspeccionada. Estos errores son preexistentes y deben reportarse como incidencia de origen, no atribuirse a PDPPlanner ni repararse automáticamente.
+
+### Hoja `Vacaciones-Bajas`
+
+El lector inicial `read_staff_calendar` lee la identidad del personal desde B:D y las fechas visibles de la fila 12 desde J en adelante. Las celdas no vacías del calendario se devuelven como marcas de indisponibilidad, sin inferir el motivo. La semántica de cada tipo de marca y su impacto exacto en capacidad debe confirmarse antes de alimentar el motor de planificación.
 
 ## 2. Libro de seguimiento SAP
 
@@ -48,28 +54,24 @@ En las filas 6–5502 hay 5.497 filas examinadas. En el estado actual de la fuen
 
 Estados observados con más frecuencia incluyen `RECIBIDO`, `EN TRAMITE`, `PARCIALMENTE RECIBIDO`, `ANULADO`, `RECIBIDO ERRONEO`, `LISTO PARA RECOGER` y `pendiente comprobar calidad`. Debe normalizarse texto y mantener visibles los estados no reconocidos.
 
-## 3. Reglas de protección de los datos
+## 3. Estado de implementación y protección de datos
 
-1. Abrir los libros fuente en modo de lectura lógica y no guardarlos encima de los originales.
-2. La primera versión de los lectores debe producir objetos de dominio e informe de validación; no debe editar celdas.
-3. Separar los errores preexistentes del Excel de los errores detectados por el lector.
-4. La salida modificada del PdP se desarrollará en un hito posterior, mediante una copia nueva y pruebas de regresión.
-5. Antes de cualquier escritura, comparar fórmulas, nombres definidos, vínculos externos, rangos combinados, dimensiones y reglas de formato condicional.
+- Se han añadido lectores iniciales de solo lectura para las cuatro fuentes: SAP `2024`, operaciones de `PdP PRODUCCIÓN`, `Listado Pedidos` y calendario `Vacaciones-Bajas`.
+- Hay pruebas sintéticas para los lectores; todavía falta ejecutar una revisión de resultados sobre los libros fuente completos y clasificar las incidencias reales.
+- Los lectores devuelven registros tipados y objetos `ValidationIssue`; no guardan los libros ni insertan filas.
+- Los errores `#REF!` de origen no deben confundirse con errores creados por el código.
+- La salida modificada del PdP se desarrollará en un hito posterior, mediante una copia nueva y pruebas de regresión.
+- Antes de cualquier escritura, comparar fórmulas, nombres definidos, vínculos externos, rangos combinados, dimensiones y reglas de formato condicional.
 
 ## 4. Decisiones pendientes de confirmar antes de automatizar
 
 - Regla exacta para identificar inicio y fin de un bloque de OT cuando la OT está repetida en varias filas o hay filas incompletas.
 - Qué hacer con registros SAP sin OT o sin número de pedido.
 - Qué regla aplicar si el mismo número de pedido SAP aparece asociado a varias OT.
+- Semántica de las marcas de calendario de personal y su efecto en la capacidad disponible.
 - Reglas completas del motor de capacidad y planificación (prioridades, precedencias, disponibilidad por recurso, duraciones y fechas bloqueadas).
 - Política para fórmulas `#REF!` ya presentes: reportarlas sin intentar repararlas automáticamente.
 
 ## 5. Siguiente entrega técnica
 
-Implementar lectores independientes y de solo lectura para:
-- `PdP PRODUCCIÓN` y su estructura de OT;
-- `Listado Pedidos`;
-- `Vacaciones-Bajas` y disponibilidad por recurso/fecha;
-- seguimiento SAP `2024`.
-
-Los lectores devolverán datos tipados y advertencias de validación. La escritura del Gantt y el motor de planificación no deben acoplarse a openpyxl directamente.
+Completar un informe consolidado de validación y ejecutar los lectores contra las fuentes reales. Después, diseñar el modelo de capacidad y el motor de planificación a partir de datos comprobados. La escritura del Gantt y el motor de planificación no deben acoplarse directamente a openpyxl.
