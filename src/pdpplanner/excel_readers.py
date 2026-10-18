@@ -9,7 +9,14 @@ from typing import Any
 
 from openpyxl import load_workbook
 
-from pdpplanner.models import ProductionOperation, ProductionOrderInfo, ReadResult, SapOrder, StaffMember, ValidationIssue
+from pdpplanner.models import (
+    ProductionOperation,
+    ProductionOrderInfo,
+    ReadResult,
+    SapOrder,
+    StaffMember,
+    ValidationIssue,
+)
 from pdpplanner.order_status import classify_state, normalize_ot
 
 SAP_SHEET = "2024"
