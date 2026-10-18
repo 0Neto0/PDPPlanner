@@ -13,7 +13,7 @@ Este archivo es una vista de seguimiento versionada del proyecto. Las incidencia
 
 ## En desarrollo
 
-- [ ] [#4 — Lectores de Excel y validación de datos](https://github.com/0Neto0/PDPPlanner/issues/4) — lectores iniciales para SAP `2024`, operaciones de `PdP PRODUCCIÓN`, `Listado Pedidos` y calendario de `Vacaciones-Bajas`. Todos trabajan en solo lectura y devuelven incidencias de validación.
+- [ ] [#4 — Lectores de Excel y validación de datos](https://github.com/0Neto0/PDPPlanner/issues/4) — lectores de solo lectura para SAP `2024`, `PdP PRODUCCIÓN`, `Listado Pedidos` y `Vacaciones-Bajas`. `source_validation.py` agrega recuentos e incidencias en un informe común.
 
 ## En pruebas
 
@@ -21,6 +21,7 @@ Este archivo es una vista de seguimiento versionada del proyecto. Las incidencia
 - [ ] Producción: longitudes variables de bloques de OT, celdas OT vacías por combinación y operaciones sin OT.
 - [ ] Listado de pedidos: correspondencia de columnas OT/producto/cliente/estado y progreso.
 - [ ] Calendario de personal: lectura de fechas y marcas de indisponibilidad.
+- [ ] Informe consolidado: recuentos por fuente, incidencias por código y gravedad.
 - [ ] Confirmar CI de la última revisión antes de mover lectores a Validación.
 
 ## Validación
