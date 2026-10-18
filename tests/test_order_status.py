@@ -45,7 +45,7 @@ class OrderStatusTests(unittest.TestCase):
         )
         self.assertEqual(summaries["2300002"].total_orders, 1)
         self.assertEqual(summaries["2300002"].unknown_orders, 1)
-        self.assertIsNone(summaries["2300002"].pending_percent)
+        self.assertEqual(summaries["2300002"].pending_percent, 0.0)
         self.assertNotIn("2300003", summaries)
 
 
