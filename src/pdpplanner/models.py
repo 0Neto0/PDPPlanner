@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Any, Generic, TypeVar
+from typing import Generic, TypeVar
 
 DateValue = date | datetime | str | None
 
